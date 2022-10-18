@@ -14,6 +14,13 @@ type Conf struct {
 	ConnectionStr string `description:"Connection string to postgres"`
 }
 
+// HandleArgs check if conf file is passed
+func HandleArgs() {
+	if len(os.Args) < 2 {
+		log.Fatal("program needs at least configuration file to work properly")
+	}
+}
+
 // GetConf is it better to use chan and log every error instead of stopping to the first ?
 // read me will explain how to configure ini file so ?
 func GetConf() *Conf {

@@ -5,15 +5,7 @@ import (
 	"github.com/dylan-dinh/api-gin/pkg/database"
 	"github.com/dylan-dinh/api-gin/pkg/handlers"
 	"log"
-	"os"
 )
-
-// handleArgs check if conf file is passed
-func handleArgs() {
-	if len(os.Args) < 2 {
-		log.Fatal("program needs at least configuration file to work properly")
-	}
-}
 
 type Services struct {
 	Db *database.DB
@@ -21,10 +13,17 @@ type Services struct {
 }
 
 func (s *Services) startServices() {
+	err := s.Db.Start()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
-	s.Db.Start()
 	s.Ap.Db = s.Db.GetDB()
-	s.Ap.Start()
+
+	err = s.Ap.Start()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
 }
 
@@ -32,7 +31,7 @@ func main() {
 	var db database.DB
 	var ap handlers.AppServer
 
-	handleArgs()
+	conf.HandleArgs()
 
 	db.Conf = conf.GetConf()
 

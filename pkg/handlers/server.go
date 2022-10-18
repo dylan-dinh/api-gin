@@ -36,7 +36,3 @@ func (ap *AppServer) Start() error {
 
 	return nil
 }
-
-//func (ap *AppServer) GetNgine() *gin.Engine {
-//	return ap.Ngine
-//}
