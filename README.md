@@ -24,7 +24,7 @@ You need to create a database (PostgresSQL) of the name of the section `database
 - `CREATE DATABASE $name WITH OWNER $user_name`
 
 
-Only the first argument will be used to open the configuration file.
+Only the first argument will be used to open the configuration file. Others will be ignored.
 Then run :
 - `go run main.go -c=confFile.ini`
 
