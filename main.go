@@ -5,37 +5,27 @@ import (
 	"github.com/dylan-dinh/api-gin/pkg/database"
 	"github.com/dylan-dinh/api-gin/pkg/handlers"
 	"log"
+	"net/http"
 )
 
-type Services struct {
-	Db *database.DB
-	Ap *handlers.AppServer
-}
-
-func (s *Services) startServices() {
-	err := s.Db.Start()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	s.Ap.Db = s.Db.GetDB()
-
-	err = s.Ap.Start()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-}
-
 func main() {
-	var db database.DB
-	var ap handlers.AppServer
+	db, err := database.NewDB(conf.GetConf())
+	if err != nil {
+		panic(err)
+	}
 
-	conf.HandleArgs()
+	if err = db.InitDb(); err != nil {
+		panic(err)
+	}
 
-	db.Conf = conf.GetConf()
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: handlers.NewRouter(db),
+	}
 
-	s := Services{Db: &db, Ap: &ap}
-
-	s.startServices()
+	log.Print("Starting server http service...")
+	log.Printf("Listening on port %v", server.Addr)
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		panic(err)
+	}
 }

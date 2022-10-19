@@ -1,35 +1,44 @@
-package conf
+package test
 
 import (
 	"flag"
 	"fmt"
+	"github.com/dylan-dinh/api-gin/pkg/conf"
+	"github.com/dylan-dinh/api-gin/pkg/database"
 	"github.com/graniticio/inifile"
 	"log"
 	"os"
 )
 
-// Conf holds configuration for db and site
-type Conf struct {
-	SiteMaxPower  string
-	SiteName      string
-	DriverName    string `default:"postgres"`
-	ConnectionStr string `description:"Connection string to postgres"`
+var confFile = flag.String("conf", "", "")
+
+func ClearDB(db *database.DB) {
+	db.Db.Exec("truncate sites")
+	db.Db.Exec("truncate engines")
 }
 
-// GetConf retrieve conf from conf file
-func GetConf() *Conf {
-	if len(os.Args) < 2 {
-		log.Fatal("program needs at least configuration file to work properly")
+func SetUpDbTest() (*database.DB, *conf.Conf) {
+	cf := getConf()
+
+	db, err := database.NewDB(cf)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	err = db.InitDb()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return db, cf
+}
+
+func getConf() *conf.Conf {
 	logger := log.New(os.Stdout, "[CONFIG]:  ", 2)
 
-	file := flag.String("c", "", "configuration file")
-	flag.Parse()
-
-	ic, err := inifile.NewIniConfigFromPath(*file)
+	ic, err := inifile.NewIniConfigFromPath(*confFile)
 	if err != nil {
-		logger.Fatal("error loading configuration file")
+		logger.Fatal(err.Error())
 	}
 
 	if !ic.SectionExists("database") || !ic.SectionExists("site") {
@@ -73,7 +82,7 @@ func GetConf() *Conf {
 		logger.Fatal("property SiteName is missing in site section")
 	}
 
-	return &Conf{
+	return &conf.Conf{
 		SiteMaxPower: maxPower,
 		SiteName:     siteName,
 		DriverName:   "postgres",

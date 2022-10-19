@@ -29,12 +29,21 @@ func (v *Validator) Errors() ValidationErrors {
 
 // AddError add the message in msg to the error map at the index key
 func (v *Validator) AddError(key, msg string) {
-	if _, ok := v.errors[key]; !ok {
-		v.errors[key] = []string{}
-	}
 	v.errors[key] = append(v.errors[key], msg)
 }
 
 func (v ValidationErrors) Error() string {
 	return fmt.Sprintf("Validation errors: %v", map[string][]string(v))
+}
+
+// Exists verifies value exists in table.field
+func (v *Validator) Exists(table, field string, value interface{}, errKey, msg string) bool {
+	query := fmt.Sprintf("SELECT count(1) FROM %#v WHERE %#v = $1", table, field)
+	res := struct{ Count int }{-1}
+	v.ex.SelectOne(&res, query, value)
+	if res.Count < 1 {
+		v.AddError(errKey, msg)
+		return false
+	}
+	return true
 }

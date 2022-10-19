@@ -1,4 +1,4 @@
-package engines
+package handlers
 
 import (
 	"database/sql"
@@ -6,52 +6,28 @@ import (
 	"fmt"
 	"github.com/dylan-dinh/api-gin/pkg/model"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/modl"
 	"net/http"
 	"strconv"
 )
 
-type Handler struct {
-	Db *modl.DbMap
-}
+func (h *Router) getAllSites(c *gin.Context) {
+	var sites []model.Site
 
-type Config struct {
-	Ngine *gin.Engine
-	Db    *modl.DbMap
-}
-
-func NewHandler(c *Config) {
-	h := &Handler{
-		Db: c.Db,
-	}
-
-	e := c.Ngine.Group("/api/engines")
-
-	e.GET("/:id", h.GetById)
-	e.GET("", h.GetAll)
-	e.POST("", h.Post)
-	e.DELETE("/:id", h.Delete)
-	e.PUT("/:id", h.Put)
-}
-
-func (h *Handler) GetAll(c *gin.Context) {
-	var ngines []model.Engine
-
-	err := h.Db.Select(&ngines, `SELECT * FROM engines`)
+	err := h.db.Select(&sites, `SELECT * FROM sites`)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "no engines found",
+			"error": "no sites found",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"engines": ngines,
+		"sites": sites,
 	})
 }
 
-func (h *Handler) GetById(c *gin.Context) {
-	var ngine model.Engine
+func (h *Router) getSiteById(c *gin.Context) {
+	var site model.Site
 	var id string
 
 	if id = c.Param("id"); id == "" {
@@ -61,21 +37,21 @@ func (h *Handler) GetById(c *gin.Context) {
 		return
 	}
 
-	err := h.Db.SelectOne(&ngine, `SELECT * FROM engines WHERE id = $1`, id)
+	err := h.db.SelectOne(&site, `SELECT * FROM sites WHERE id = $1`, id)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("engine with id '%s' not found", id),
+			"error": fmt.Sprintf("sites with id '%s' not found", id),
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"engine": ngine,
+		"sites": site,
 	})
 }
 
-func (h *Handler) Put(c *gin.Context) {
-	var ngine model.Engine
+func (h *Router) putSite(c *gin.Context) {
+	var site model.Site
 	var id string
 
 	if id = c.Param("id"); id == "" {
@@ -87,32 +63,33 @@ func (h *Handler) Put(c *gin.Context) {
 
 	atoi, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "internal server error",
 		})
 		return
 	}
 
-	if err := c.Bind(&ngine); err != nil {
+	if err := c.BindJSON(&site); err != nil {
+		fmt.Println("weflkihbwefgbjkwefbjkwebjkf")
 		c.JSON(http.StatusBadRequest, gin.H{
-			"engine": err.Error(),
+			"sites": err.Error(),
 		})
 		return
 	}
 
-	ngine.Id = atoi
+	site.Id = atoi
 
-	rows, err := h.Db.Update(&ngine)
+	rows, err := h.db.Update(&site)
+	if rows == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": fmt.Sprintf("sites with id '%s' not found", id),
+		})
+		return
+	}
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
-		})
-		return
-	}
-	if rows == 0 {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("engine with id '%s' not found", id),
 		})
 		return
 	}
@@ -120,31 +97,31 @@ func (h *Handler) Put(c *gin.Context) {
 	c.JSON(http.StatusNoContent, gin.H{})
 }
 
-func (h *Handler) Post(c *gin.Context) {
-	var body model.Engine
+func (h *Router) postSite(c *gin.Context) {
+	var site model.Site
 
-	if err := c.BindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"engine": err.Error(),
+	if err := c.BindJSON(&site); err != nil {
+		c.JSON(http.StatusCreated, gin.H{
+			"sites": err.Error(),
 		})
 		return
 	}
 
-	err := h.Db.Insert(&body)
+	err := h.db.Insert(&site)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"engine": err.Error(),
+			"sites": err.Error(),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"engine": body,
+	c.JSON(http.StatusCreated, gin.H{
+		"sites": site,
 	})
 }
 
-func (h *Handler) Delete(c *gin.Context) {
-	var ngine model.Engine
+func (h *Router) deleteSite(c *gin.Context) {
+	var site model.Site
 	var id string
 
 	if id = c.Param("id"); id == "" {
@@ -162,9 +139,9 @@ func (h *Handler) Delete(c *gin.Context) {
 		return
 	}
 
-	ngine.Id = atoi
+	site.Id = atoi
 
-	rows, err := h.Db.Delete(&ngine)
+	rows, err := h.db.Delete(&site)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "internal server error",
@@ -173,7 +150,7 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 	if rows == 0 {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": fmt.Sprintf("engine with id '%s' not found", id),
+			"error": fmt.Sprintf("sites with id '%s' not found", id),
 		})
 		return
 	}
